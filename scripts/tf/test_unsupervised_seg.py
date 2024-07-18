@@ -27,7 +27,7 @@ import os
 import argparse
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend as K
+from keras import backend as K
 import voxelmorph as vxm
 
 

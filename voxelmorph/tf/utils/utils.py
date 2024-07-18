@@ -25,8 +25,9 @@ import warnings
 # third party imports
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as K
-import tensorflow.keras.layers as KL
+import keras
+from keras import backend as K
+from keras import layers as KL
 
 # local imports
 import neurite as ne
@@ -56,7 +57,7 @@ def setup_device(gpuid=None):
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = True
             config.allow_soft_placement = True
-            tf.keras.backend.set_session(tf.Session(config=config))
+            keras.backend.set_session(tf.Session(config=config))
         else:
             tf.config.set_soft_device_placement(True)
             for pd in tf.config.list_physical_devices('GPU'):
@@ -510,11 +511,11 @@ def keras_transform(img, trf, interp_method='linear', rescale=None):
     # or the transform function is integrating it with the rescale operation? 
     # This needs to be incorporated.
     """
-    img_input = tf.keras.Input(shape=img.shape[1:])
-    trf_input = tf.keras.Input(shape=trf.shape[1:])
+    img_input = keras.Input(shape=img.shape[1:])
+    trf_input = keras.Input(shape=trf.shape[1:])
     trf_scaled = trf_input if rescale is None else layers.RescaleTransform(rescale)(trf_input)
     y_img = layers.SpatialTransformer(interp_method=interp_method)([img_input, trf_scaled])
-    return tf.keras.Model([img_input, trf_input], y_img).predict([img, trf])
+    return keras.Model([img_input, trf_input], y_img).predict([img, trf])
 
 
 ###############################################################################

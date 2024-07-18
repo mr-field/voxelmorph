@@ -28,6 +28,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import voxelmorph as vxm
+import keras
 
 
 # disable eager execution
@@ -193,11 +194,11 @@ weights += [0.25 / (args.dt_sigma**2)] * nb_dst_outputs
 # multi-gpu support
 if nb_devices > 1:
     save_callback = vxm.networks.ModelCheckpointParallel(save_filename)
-    model = tf.keras.utils.multi_gpu_model(model, gpus=nb_devices)
+    model = keras.utils.multi_gpu_model(model, gpus=nb_devices)
 else:
-    save_callback = tf.keras.callbacks.ModelCheckpoint(save_filename, period=20)
+    save_callback = keras.callbacks.ModelCheckpoint(save_filename, period=20)
 
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=args.lr), loss=losses, loss_weights=weights)
+model.compile(optimizer=keras.optimizers.Adam(lr=args.lr), loss=losses, loss_weights=weights)
 
 # save starting weights
 model.save(save_filename.format(epoch=args.initial_epoch))

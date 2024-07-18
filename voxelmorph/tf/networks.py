@@ -25,9 +25,10 @@ from collections.abc import Iterable
 # third party imports
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as K
-import tensorflow.keras.layers as KL
-import tensorflow.keras.initializers as KI
+import keras
+from keras import backend as K
+from keras import layers as KL
+from keras import initializers as KI
 
 # local imports
 import neurite as ne
@@ -104,9 +105,9 @@ class VxmDense(ne.modelio.LoadableModel):
 
         if input_model is None:
             # configure default input layers if an input model is not provided
-            source = tf.keras.Input(shape=(*inshape, src_feats), name='%s_source_input' % name)
-            target = tf.keras.Input(shape=(*inshape, trg_feats), name='%s_target_input' % name)
-            input_model = tf.keras.Model(inputs=[source, target], outputs=[source, target])
+            source = keras.Input(shape=(*inshape, src_feats), name='%s_source_input' % name)
+            target = keras.Input(shape=(*inshape, trg_feats), name='%s_target_input' % name)
+            input_model = keras.Model(inputs=[source, target], outputs=[source, target])
         else:
             source, target = input_model.outputs[:2]
 
@@ -265,7 +266,7 @@ class VxmDense(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs, self.references.pos_flow)
+        return keras.Model(self.inputs, self.references.pos_flow)
 
     def register(self, src, trg):
         """
@@ -278,10 +279,10 @@ class VxmDense(ne.modelio.LoadableModel):
         Predicts the transform from src to trg and applies it to the img tensor.
         """
         warp_model = self.get_registration_model()
-        img_input = tf.keras.Input(shape=img.shape[1:])
+        img_input = keras.Input(shape=img.shape[1:])
         st_input = [img_input, warp_model.output]
         y_img = layers.SpatialTransformer(interp_method=interp_method)(st_input)
-        return tf.keras.Model(warp_model.inputs + [img_input], y_img).predict([src, trg, img])
+        return keras.Model(warp_model.inputs + [img_input], y_img).predict([src, trg, img])
 
 
 class VxmDenseSemiSupervisedSeg(ne.modelio.LoadableModel):
@@ -331,7 +332,7 @@ class VxmDenseSemiSupervisedSeg(ne.modelio.LoadableModel):
 
         # configure downsampled seg input layer
         inshape_ds = (np.array(inshape) / seg_resolution).astype(int)
-        seg_src = tf.keras.Input(shape=(*inshape_ds, nb_labels), name=f'{name}_source_seg')
+        seg_src = keras.Input(shape=(*inshape_ds, nb_labels), name=f'{name}_source_seg')
 
         # configure warped seg output layer
         seg_flow = layers.RescaleTransform(
@@ -345,7 +346,7 @@ class VxmDenseSemiSupervisedSeg(ne.modelio.LoadableModel):
         if bidir_labels:
 
             # target seg input
-            seg_trg = tf.keras.Input(shape=(*inshape_ds, nb_labels), name=f'{name}_target_seg')
+            seg_trg = keras.Input(shape=(*inshape_ds, nb_labels), name=f'{name}_target_seg')
             inputs.append(seg_trg)
 
             # warp labels bidirectionally
@@ -369,7 +370,7 @@ class VxmDenseSemiSupervisedSeg(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs[:2], self.references.pos_flow)
+        return keras.Model(self.inputs[:2], self.references.pos_flow)
 
     def register(self, src, trg):
         """
@@ -382,10 +383,10 @@ class VxmDenseSemiSupervisedSeg(ne.modelio.LoadableModel):
         Predicts the transform from src to trg and applies it to the img tensor.
         """
         warp_model = self.get_registration_model()
-        img_input = tf.keras.Input(shape=img.shape[1:])
+        img_input = keras.Input(shape=img.shape[1:])
         st_input = [img_input, warp_model.output]
         y_img = layers.SpatialTransformer(interp_method=interp_method)(st_input)
-        return tf.keras.Model(warp_model.inputs + [img_input], y_img).predict([src, trg, img])
+        return keras.Model(warp_model.inputs + [img_input], y_img).predict([src, trg, img])
 
 
 class VxmDenseSemiSupervisedPointCloud(ne.modelio.LoadableModel):
@@ -425,7 +426,7 @@ class VxmDenseSemiSupervisedPointCloud(ne.modelio.LoadableModel):
         neg_flow = vxm_model.references.neg_flow
 
         # surface inputs and invert atlas_v for inverse transform to get final 'atlas surface'
-        atl_surf_input = tf.keras.Input(surface_points_shape, name='atl_surface_input')
+        atl_surf_input = keras.Input(surface_points_shape, name='atl_surface_input')
 
         # warp atlas surface
         # NOTE: pos diffflow is used to define an image moving x --> A,
@@ -434,17 +435,17 @@ class VxmDenseSemiSupervisedPointCloud(ne.modelio.LoadableModel):
             atl_surf_input, pos_flow])
 
         # get value of dt_input *at* warped_atlas_surface
-        subj_dt_input = tf.keras.Input([*sdt_shape, nb_labels_sample], name='subj_dt_input')
+        subj_dt_input = keras.Input([*sdt_shape, nb_labels_sample], name='subj_dt_input')
         subj_dt_value = KL.Lambda(utils.value_at_location, name='hausdorff_subj_dt')(
             [subj_dt_input, warped_atl_surf_pts])
 
         if surf_bidir:
             # go the other way and warp subject to atlas
-            subj_surf_input = tf.keras.Input(surface_points_shape, name='subj_surface_input')
+            subj_surf_input = keras.Input(surface_points_shape, name='subj_surface_input')
             warped_subj_surf_pts = KL.Lambda(single_pt_trf, name='warped_subj_surface')([
                 subj_surf_input, neg_flow])
 
-            atl_dt_input = tf.keras.Input([*sdt_shape, nb_labels_sample], name='atl_dt_input')
+            atl_dt_input = keras.Input([*sdt_shape, nb_labels_sample], name='atl_dt_input')
             atl_dt_value = KL.Lambda(utils.value_at_location, name='hausdorff_atl_dt')(
                 [atl_dt_input, warped_subj_surf_pts])
 
@@ -467,7 +468,7 @@ class VxmDenseSemiSupervisedPointCloud(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs[:2], self.references.pos_flow)
+        return keras.Model(self.inputs[:2], self.references.pos_flow)
 
     def register(self, src, trg):
         """
@@ -480,10 +481,10 @@ class VxmDenseSemiSupervisedPointCloud(ne.modelio.LoadableModel):
         Predicts the transform from src to trg and applies it to the img tensor.
         """
         warp_model = self.get_registration_model()
-        img_input = tf.keras.Input(shape=img.shape[1:])
+        img_input = keras.Input(shape=img.shape[1:])
         st_input = [img_input, warp_model.output]
         y_img = layers.SpatialTransformer(interp_method=interp_method)(st_input)
-        return tf.keras.Model(warp_model.inputs + [img_input], y_img).predict([src, trg, img])
+        return keras.Model(warp_model.inputs + [img_input], y_img).predict([src, trg, img])
 
 
 ###############################################################################
@@ -522,7 +523,7 @@ class InstanceDense(ne.modelio.LoadableModel):
         # downsample warp shape
         ds_warp_shape = [int(dim / float(int_resolution)) for dim in inshape]
 
-        source = tf.keras.Input(shape=(*inshape, nb_feats))
+        source = keras.Input(shape=(*inshape, nb_feats))
         flow_layer = ne.layers.LocalParamWithInput(shape=(*ds_warp_shape, len(inshape)), mult=mult)
         preint_flow = flow_layer(source)
 
@@ -562,7 +563,7 @@ class InstanceDense(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs, self.references.pos_flow)
+        return keras.Model(self.inputs, self.references.pos_flow)
 
     def register(self, src):
         """
@@ -737,7 +738,7 @@ class ProbAtlasSegmentation(ne.modelio.LoadableModel):
             self.references.stat_logssq,
             self.outputs[-1]
         ]
-        return tf.keras.Model(self.inputs, outputs)
+        return keras.Model(self.inputs, outputs)
 
     def get_likelihood_warp_model(self):
         """
@@ -751,7 +752,7 @@ class ProbAtlasSegmentation(ne.modelio.LoadableModel):
                 self.references.uloglhood,
                 self.outputs[-1]
             ]
-            return tf.keras.Model(self.inputs, outputs)
+            return keras.Model(self.inputs, outputs)
 
 
 ###############################################################################
@@ -778,7 +779,7 @@ class TemplateCreation(ne.modelio.LoadableModel):
         """
 
         # configure inputs
-        source_input = tf.keras.Input(shape=[*inshape, src_feats], name='source_input')
+        source_input = keras.Input(shape=[*inshape, src_feats], name='source_input')
 
         # pre-warp (atlas) model
         atlas_layer = ne.layers.LocalParamWithInput(
@@ -788,7 +789,7 @@ class TemplateCreation(ne.modelio.LoadableModel):
             name='atlas'
         )
         atlas_tensor = atlas_layer(source_input)
-        warp_input_model = tf.keras.Model(inputs=[source_input], outputs=[
+        warp_input_model = keras.Model(inputs=[source_input], outputs=[
                                           atlas_tensor, source_input])
 
         # warp model
@@ -833,7 +834,7 @@ class TemplateCreation(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs, self.references.pos_flow)
+        return keras.Model(self.inputs, self.references.pos_flow)
 
     def register(self, src, trg):
         """
@@ -846,11 +847,11 @@ class TemplateCreation(ne.modelio.LoadableModel):
         Predicts the transform from src to trg and applies it to the img tensor.
         """
         warp_model = self.get_registration_model()
-        img_input = tf.keras.Input(shape=img.shape[1:])
+        img_input = keras.Input(shape=img.shape[1:])
         y_img = layers.SpatialTransformer(interp_method=interp_method,
                                           fill_value=fill_value)([img_input, warp_model.output])
         inputs = (*warp_model.inputs, img_input)
-        return tf.keras.Model(inputs=inputs, outputs=y_img).predict([src, trg, img])
+        return keras.Model(inputs=inputs, outputs=y_img).predict([src, trg, img])
 
 
 class ConditionalTemplateCreation(ne.modelio.LoadableModel):
@@ -907,7 +908,7 @@ class ConditionalTemplateCreation(ne.modelio.LoadableModel):
         pheno_input = KL.Input(pheno_input_shape, name='pheno_input')
         pheno_dense = KL.Dense(np.prod(conv_image_shape), activation='elu')(pheno_input)
         pheno_reshaped = KL.Reshape(conv_image_shape, name='pheno_reshape')(pheno_dense)
-        pheno_init_model = tf.keras.models.Model(pheno_input, pheno_reshaped)
+        pheno_init_model = keras.models.Model(pheno_input, pheno_reshaped)
 
         # build model to decode reshaped pheno
         pheno_decoder_model = ne.models.conv_dec(conv_nb_features, conv_image_shape, conv_nb_levels,
@@ -930,8 +931,8 @@ class ConditionalTemplateCreation(ne.modelio.LoadableModel):
                          bias_initializer=KI.RandomNormal(mean=0.0, stddev=1e-7))(last)
 
         # image input layers
-        atlas_input = tf.keras.Input((*inshape, atlas_feats), name='atlas_input')
-        source_input = tf.keras.Input((*inshape, src_feats), name='source_input')
+        atlas_input = keras.Input((*inshape, atlas_feats), name='atlas_input')
+        source_input = keras.Input((*inshape, src_feats), name='source_input')
 
         if templcondsi:
             atlas_tensor = KL.Add(name='atlas_tmp')([atlas_input, pout])
@@ -950,10 +951,10 @@ class ConditionalTemplateCreation(ne.modelio.LoadableModel):
             atlas_tensor = KL.Add(name='atlas')([atlas_input, atlas_gen])
 
         # build complete pheno to atlas model
-        pheno_model = tf.keras.models.Model([pheno_decoder_model.input, atlas_input], atlas_tensor)
+        pheno_model = keras.models.Model([pheno_decoder_model.input, atlas_input], atlas_tensor)
 
         inputs = [pheno_decoder_model.input, atlas_input, source_input]
-        warp_input_model = tf.keras.Model(inputs=inputs, outputs=[atlas_tensor, source_input])
+        warp_input_model = keras.Model(inputs=inputs, outputs=[atlas_tensor, source_input])
 
         # warp model
         vxm_model = VxmDense(inshape, nb_unet_features=nb_unet_features,
@@ -987,7 +988,7 @@ class ConditionalTemplateCreation(ne.modelio.LoadableModel):
 # Utility/Core Networks
 ###############################################################################
 
-class Transform(tf.keras.Model):
+class Transform(keras.Model):
     """
     Simple transform model to apply dense or affine transforms.
     """
@@ -1011,13 +1012,13 @@ class Transform(tf.keras.Model):
 
         # configure inputs
         ndims = len(inshape)
-        scan_input = tf.keras.Input((*inshape, nb_feats), name='scan_input')
+        scan_input = keras.Input((*inshape, nb_feats), name='scan_input')
 
         if affine:
-            trf_input = tf.keras.Input((ndims, ndims + 1), name='trf_input')
+            trf_input = keras.Input((ndims, ndims + 1), name='trf_input')
         else:
             trf_shape = inshape if rescale is None else [int(d / rescale) for d in inshape]
-            trf_input = tf.keras.Input((*trf_shape, ndims), name='trf_input')
+            trf_input = keras.Input((*trf_shape, ndims), name='trf_input')
 
         trf_scaled = trf_input if rescale is None else layers.RescaleTransform(rescale)(trf_input)
 
@@ -1029,7 +1030,7 @@ class Transform(tf.keras.Model):
         super().__init__(inputs=[scan_input, trf_input], outputs=y_source)
 
 
-class Unet(tf.keras.Model):
+class Unet(keras.Model):
     """
     A unet architecture that builds off either an input keras model or input shape. Layer features 
     can be specified directly as a list of encoder and decoder features or as a single integer along
@@ -1213,14 +1214,14 @@ class HyperVxmDense(ne.modelio.LoadableModel):
         """
 
         # build hypernetwork
-        hyp_input = tf.keras.Input(shape=[nb_hyp_params], name='%s_hyp_input' % name)
+        hyp_input = keras.Input(shape=[nb_hyp_params], name='%s_hyp_input' % name)
         hyp_last = hyp_input
         for n in range(nb_hyp_layers):
             hyp_last = KL.Dense(nb_hyp_units, activation='relu',
                                 name='%s_hyp_dense_%d' % (name, n + 1))(hyp_last)
 
         # attach hypernetwork to vxm dense network
-        hyp_model = tf.keras.Model(inputs=hyp_input, outputs=hyp_last, name='%s_hypernet' % name)
+        hyp_model = keras.Model(inputs=hyp_input, outputs=hyp_last, name='%s_hypernet' % name)
         vxm_model = VxmDense(inshape, hyp_model=hyp_model, name=name, **kwargs)
 
         # rebuild model
@@ -1235,7 +1236,7 @@ class HyperVxmDense(ne.modelio.LoadableModel):
 # SynthMorph
 ###############################################################################
 
-class VxmAffineFeatureDetector(tf.keras.Model):
+class VxmAffineFeatureDetector(keras.Model):
     """
     SynthMorph network for symmetric affine or rigid registration of two images.
 
@@ -1310,9 +1311,9 @@ class VxmAffineFeatureDetector(tf.keras.Model):
         """
         # Original inputs.
         if input_model is None:
-            inp_1 = tf.keras.Input(shape=(*in_shape, num_chan))
-            inp_2 = tf.keras.Input(shape=(*in_shape, num_chan))
-            input_model = tf.keras.Model(*[(inp_1, inp_2)] * 2)
+            inp_1 = keras.Input(shape=(*in_shape, num_chan))
+            inp_2 = keras.Input(shape=(*in_shape, num_chan))
+            input_model = keras.Model(*[(inp_1, inp_2)] * 2)
         inp_1, inp_2 = input_model.outputs[:2]
 
         # Dimensions.
@@ -1329,7 +1330,7 @@ class VxmAffineFeatureDetector(tf.keras.Model):
         up = getattr(KL, f'UpSampling{num_dim}D')
 
         # Static transforms. Function names refer to effect on coordinates.
-        dtype = tf.keras.mixed_precision.global_policy().compute_dtype
+        dtype = keras.mixed_precision.global_policy().compute_dtype
 
         def tensor(x):
             x = tf.constant(x[None, :-1, :], dtype)
@@ -1356,7 +1357,7 @@ class VxmAffineFeatureDetector(tf.keras.Model):
             inp_2 = layers.SpatialTransformer(**prop)((inp_2, scale(2)))
 
         # Feature detector: encoder.
-        inp = tf.keras.Input(shape=(*inp_1.shape[1:-1], num_chan))
+        inp = keras.Input(shape=(*inp_1.shape[1:-1], num_chan))
         out = inp
         prop = dict(kernel_size=3, padding='same')
         enc = []
@@ -1384,12 +1385,12 @@ class VxmAffineFeatureDetector(tf.keras.Model):
 
         # Output features.
         out = conv(num_feat, activation='relu', **prop)(out)
-        det = tf.keras.Model(inp, out)
+        det = keras.Model(inp, out)
 
         # Always sum and fit affine with single precision.
         feat_1 = det(inp_1)
         feat_2 = det(inp_2)
-        if tf.keras.mixed_precision.global_policy().compute_dtype == 'float16':
+        if keras.mixed_precision.global_policy().compute_dtype == 'float16':
             feat_1 = tf.cast(feat_1, tf.float32)
             feat_2 = tf.cast(feat_2, tf.float32)
 
@@ -1436,7 +1437,7 @@ class VxmAffineFeatureDetector(tf.keras.Model):
             out = [(x, scale(2)) for x in out]
             out = [layers.ComposeTransform(shift_center=False)(x) for x in out]
 
-        if tf.keras.mixed_precision.global_policy().compute_dtype == 'float16':
+        if keras.mixed_precision.global_policy().compute_dtype == 'float16':
             out = [tf.cast(x, tf.float16) for x in out]
 
         shape_out = shape_half if return_trans_to_half_res else shape_full
@@ -1459,7 +1460,7 @@ class VxmAffineFeatureDetector(tf.keras.Model):
         super().__init__(inputs=input_model.inputs, outputs=out if len(out) > 1 else out[0])
 
 
-class HyperVxmJoint(tf.keras.Model):
+class HyperVxmJoint(keras.Model):
     """
     SynthMorph network for symmetric joint affine-deformable registration of two images.
 
@@ -1539,10 +1540,10 @@ class HyperVxmJoint(tf.keras.Model):
         """
         # Inputs.
         if input_model is None:
-            hyp_inp = tf.keras.Input(shape=[hyp_num])
-            full_1 = tf.keras.Input(shape=(*in_shape, num_chan))
-            full_2 = tf.keras.Input(shape=(*in_shape, num_chan))
-            input_model = tf.keras.Model(*[(hyp_inp, full_1, full_2)] * 2)
+            hyp_inp = keras.Input(shape=[hyp_num])
+            full_1 = keras.Input(shape=(*in_shape, num_chan))
+            full_2 = keras.Input(shape=(*in_shape, num_chan))
+            input_model = keras.Model(*[(hyp_inp, full_1, full_2)] * 2)
         hyp_inp, full_1, full_2 = input_model.outputs
 
         # Dimensions.
@@ -1565,7 +1566,7 @@ class HyperVxmJoint(tf.keras.Model):
 
         # Static transforms. Function names refer to effect on coordinates.
         def tensor(x):
-            dtype = tf.keras.mixed_precision.global_policy().compute_dtype
+            dtype = keras.mixed_precision.global_policy().compute_dtype
             x = tf.constant(x[None, :-1, :], dtype)
             return tf.repeat(x, repeats=tf.shape(full_1)[0], axis=0)
 
@@ -1598,8 +1599,8 @@ class HyperVxmJoint(tf.keras.Model):
             hyp_out = KL.Dense(n, activation='relu')(hyp_out)
 
         # Deformable layers.
-        inp_1 = tf.keras.Input(shape=(*shape_half, num_chan))
-        inp_2 = tf.keras.Input(shape=(*shape_half, num_chan))
+        inp_1 = keras.Input(shape=(*shape_half, num_chan))
+        inp_2 = keras.Input(shape=(*shape_half, num_chan))
         pool = getattr(KL, f'MaxPool{num_dim}D')
         up = getattr(KL, f'UpSampling{num_dim}D')
 
@@ -1632,7 +1633,7 @@ class HyperVxmJoint(tf.keras.Model):
 
         # Deformable network: output SVF or warp.
         x = conv(x, filters=num_dim)
-        model_def = tf.keras.Model(inputs=(hyp_inp, inp_1, inp_2), outputs=x)
+        model_def = keras.Model(inputs=(hyp_inp, inp_1, inp_2), outputs=x)
 
         # Deformable registration. Average for symmetry, before integration.
         svf_1 = model_def((hyp_inp, mov_1, mov_2))

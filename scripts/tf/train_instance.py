@@ -26,6 +26,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import voxelmorph as vxm
+import keras
 
 
 # parse the commandline
@@ -98,7 +99,7 @@ weights = [1, args.lambda_weight]
 
 # train
 zeros = np.zeros((1, *inshape, len(inshape)), dtype='float32')
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=args.lr), loss=losses, loss_weights=weights)
+model.compile(optimizer=keras.optimizers.Adam(lr=args.lr), loss=losses, loss_weights=weights)
 model.fit(
     [moving],
     [fixed, zeros],

@@ -25,7 +25,7 @@ import warnings
 import numpy as np
 import neurite as ne
 import tensorflow as tf
-import tensorflow.keras.backend as K
+from keras import backend as K
 
 
 class NCC:

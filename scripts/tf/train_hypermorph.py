@@ -29,7 +29,8 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import voxelmorph as vxm
-from tensorflow.keras import backend as K
+from keras import backend as K
+import keras
 
 
 # disable eager execution
@@ -177,9 +178,9 @@ def grad_loss(y_true, y_pred):
     return hyp * vxm.losses.Grad('l2', loss_mult=args.int_downsize).loss(y_true, y_pred)
 
 
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=args.lr), loss=[image_loss, grad_loss])
+model.compile(optimizer=keras.optimizers.Adam(lr=args.lr), loss=[image_loss, grad_loss])
 
-save_callback = tf.keras.callbacks.ModelCheckpoint(save_filename, period=100)
+save_callback = keras.callbacks.ModelCheckpoint(save_filename, period=100)
 
 model.fit_generator(generator,
                     initial_epoch=args.initial_epoch,

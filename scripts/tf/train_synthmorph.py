@@ -20,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 import neurite as ne
 import voxelmorph as vxm
+import keras
 
 
 # reference
@@ -147,7 +148,7 @@ with getattr(tf.distribute, strategy)().scope():
     # registration
     inputs = gen_model_1.inputs + gen_model_2.inputs
     reg_args['inshape'] = ima_1.shape[1:-1]
-    reg_args['input_model'] = tf.keras.Model(inputs, outputs=(ima_1, ima_2))
+    reg_args['input_model'] = keras.Model(inputs, outputs=(ima_1, ima_2))
     model = vxm.networks.VxmDense(**reg_args)
     flow = model.references.pos_flow
     pred = vxm.layers.SpatialTransformer(interp_method='linear', name='pred')([map_1, flow])
@@ -156,21 +157,21 @@ with getattr(tf.distribute, strategy)().scope():
     const = tf.ones(shape=arg.batch_size // nb_devices)
     model.add_loss(vxm.losses.Dice().loss(map_2, pred) + const)
     model.add_loss(vxm.losses.Grad('l2', loss_mult=arg.reg_param).loss(None, flow))
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=arg.lr))
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=arg.lr))
     model.summary()
 
 
 # callbacks
 steps_per_epoch = 100
 save_name = os.path.join(arg.model_dir, '{epoch:05d}.h5')
-save = tf.keras.callbacks.ModelCheckpoint(
+save = keras.callbacks.ModelCheckpoint(
     save_name,
     save_freq=steps_per_epoch * arg.save_freq,
 )
 callbacks = [save]
 
 if arg.log_dir:
-    log = tf.keras.callbacks.TensorBoard(
+    log = keras.callbacks.TensorBoard(
         log_dir=arg.log_dir,
         write_graph=False,
     )
