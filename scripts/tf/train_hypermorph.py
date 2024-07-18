@@ -29,8 +29,8 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import voxelmorph as vxm
-from keras import backend as K
-import keras
+from tf_keras import backend as K
+import tf_keras as keras
 
 
 # disable eager execution

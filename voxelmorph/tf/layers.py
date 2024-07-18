@@ -24,8 +24,8 @@ import neurite as ne
 
 # tensorflow
 import tensorflow as tf
-from keras import backend as K
-from keras.layers import Layer
+from tf_keras import backend as K
+from tf_keras.layers import Layer
 
 # local utils
 from . import utils

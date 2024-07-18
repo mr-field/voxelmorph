@@ -20,7 +20,7 @@ import numpy as np
 import tensorflow as tf
 import neurite as ne
 import voxelmorph as vxm
-import keras
+import tf_keras as keras
 
 
 # reference

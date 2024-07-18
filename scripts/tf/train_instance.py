@@ -26,7 +26,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import voxelmorph as vxm
-import keras
+import tf_keras as keras
 
 
 # parse the commandline

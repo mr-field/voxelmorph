@@ -25,8 +25,7 @@ import warnings
 import numpy as np
 import neurite as ne
 import tensorflow as tf
-from keras import backend as K
-
+from tf_keras import backend as K
 
 class NCC:
     """

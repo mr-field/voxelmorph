@@ -25,9 +25,9 @@ import warnings
 # third party imports
 import numpy as np
 import tensorflow as tf
-import keras
-from keras import backend as K
-from keras import layers as KL
+import tf_keras as keras
+from tf_keras import backend as K
+from tf_keras import layers as KL
 
 # local imports
 import neurite as ne
